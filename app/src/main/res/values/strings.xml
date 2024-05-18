@@ -4,4 +4,6 @@
     <string name="color_1_edit_text_label">C1:</string>
     <string name="color_2_edit_text_label">C2:</string>
     <string name="color_selection_hint">#</string>
+    <string name="hex_string_letter_prefix">ff</string>
+    <string name="initial_hex_color_value">111111</string>
 </resources>
