@@ -2,6 +2,7 @@ package com.example.coloraddition
 
 import android.graphics.Color.parseColor
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.coloraddition.Constants.COLOR_HEX_ALLOWED_CHARACTERS
 import com.example.coloraddition.Constants.DEFAULT_COLOR_SUM
+import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
 import com.example.coloraddition.ui.theme.ColorAdditionTheme
 
 class MainActivity : ComponentActivity() {
@@ -48,6 +50,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val context = this
         setContent {
             val widthDp = LocalConfiguration.current.screenWidthDp.dp
             val heightDp = LocalConfiguration.current.screenHeightDp.dp
@@ -56,13 +59,18 @@ class MainActivity : ComponentActivity() {
             } else {
                 widthDp
             }
-            val containerWidth = minDimen / 2
+            val sumWidth = minDimen / 2
+            val containerWidth = minDimen / 3
             val containerPadding = containerWidth / 10
+            val isLandscapeMode = ViewUtils.getScreenIsLandscapeMode(this)
             var colorHex1 by rememberSaveable { mutableStateOf("") }
             var colorHex2 by rememberSaveable { mutableStateOf("") }
             var sumString by rememberSaveable { mutableStateOf(DEFAULT_COLOR_SUM) }
-            val sumStringFormatted = sumString.replaceFirst(getString(
-                R.string.hex_string_letter_prefix),"")
+            val sumStringFormatted = if (sumString.length > EXPECTED_COLOR_HEX_LENGTH) {
+                sumString.replaceFirst(getString(R.string.hex_string_letter_prefix),"")
+            } else {
+                sumString
+            }
             ColorAdditionTheme {
                 Column(
                     modifier = Modifier
@@ -73,16 +81,24 @@ class MainActivity : ComponentActivity() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     val viewModelCallback = {position: Int, colorText: String, colorSumString: String ->
-                        if (position == 0) {
-                            colorHex1 = colorText
-                        } else {
-                            colorHex2 = colorText
+                        if (position >= 0) {
+                            if (position == 0) {
+                                colorHex1 = colorText
+                            } else if (position == 1) {
+                                colorHex2 = colorText
+                            }
+                            sumString = colorSumString
+                        } else if (position == -1){
+                            Toast.makeText(context, getString(R.string.error_message_non_hex_input),
+                                Toast.LENGTH_SHORT).show()
+                        } else if (position == -2){
+                            Toast.makeText(context, getString(R.string.error_message_too_large),
+                                Toast.LENGTH_SHORT).show()
                         }
-                        sumString = colorSumString
-                    }
+                    }  as (Int, String, String) -> Any
                     colorViewModel.setCallback(viewModelCallback)
                     SumView(
-                        containerWidth,
+                        sumWidth,
                         containerPadding,
                         sumString,
                         sumStringFormatted
@@ -92,6 +108,7 @@ class MainActivity : ComponentActivity() {
                         containerPadding = containerPadding,
                         colorHex1,
                         colorHex2,
+                        isLandscapeMode,
                         callback = { position, colorText ->
                             colorViewModel.processIntent(ColorIntent.ChangeField(position,
                                 colorText), DEFAULT_COLOR_SUM)
@@ -112,7 +129,6 @@ class MainActivity : ComponentActivity() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.8f)
                 .padding(containerPadding),
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.Center,
@@ -148,13 +164,14 @@ class MainActivity : ComponentActivity() {
         containerPadding: Dp,
         color1: String,
         color2: String,
+        isLandscapeMode: Boolean,
         callback: (Int, String) -> Unit
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(),
-            verticalAlignment = Alignment.Bottom,
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.Center
         ) {
             val hint = stringResource(R.string.color_selection_hint)

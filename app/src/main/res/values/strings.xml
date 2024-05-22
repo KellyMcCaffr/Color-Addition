@@ -4,4 +4,6 @@
     <string name="color_2_edit_text_label">C2:</string>
     <string name="color_selection_hint">#</string>
     <string name="hex_string_letter_prefix">ff</string>
+    <string name="error_message_non_hex_input">Hex input must be a letter a–f or number 0–9</string>
+    <string name="error_message_too_large">Hex must have 6 characters</string>
 </resources>
