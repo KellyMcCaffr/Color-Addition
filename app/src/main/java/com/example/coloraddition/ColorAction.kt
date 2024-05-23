@@ -7,4 +7,5 @@ sealed class ColorAction {
     data class PartialFill(val position:Int, val newColor: String, val otherColor: String): ColorAction()
     // Input is incorrect or too large
     data class IncorrectInput(val newColor: String): ColorAction()
+    object Clear: ColorAction()
 }

@@ -1,5 +1,6 @@
 package com.example.coloraddition
 
+import com.example.coloraddition.Constants.DEFAULT_COLOR_SUM
 import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
 
 class ColorViewModel(
@@ -8,8 +9,11 @@ class ColorViewModel(
     sumString: String,
     private val allowedCharacters: String
 ) {
-    lateinit var changeColorCallback: (Int, String, String) -> Any
+    private lateinit var changeColorCallback: (Int, String, String) -> Any
     private var state: ColorState
+    init {
+        state = ColorState(colorHex1, colorHex2, sumString)
+    }
     fun setCallback(callback: (Int, String, String) -> Any) {
         changeColorCallback = callback
     }
@@ -22,12 +26,8 @@ class ColorViewModel(
         return state.colorHex2
     }
 
-    init {
-        state = ColorState(colorHex1, colorHex2, sumString)
-    }
-
-    fun processIntent(intent: ColorIntent, defaultColorSum: String) {
-        processAction(intentToAction(intent), defaultColorSum)
+    fun processIntent(intent: ColorIntent) {
+        processAction(intentToAction(intent))
     }
 
     private fun intentToAction(intent: ColorIntent): ColorAction {
@@ -39,17 +39,21 @@ class ColorViewModel(
             } else {
                 ColorAction.PartialFill(intent.position, intent.newColor, intent.otherColor)
             }
+            is ColorIntent.Clear ->
+                ColorAction.Clear
         }
     }
 
-    private fun processAction(action: ColorAction, defaultColorSum: String) {
+    private fun processAction(action: ColorAction) {
         when (action) {
             is ColorAction.FinishEnter ->
                 selectColor(action.position, action.newColor, action.otherColor)
             is ColorAction.PartialFill ->
-                deselectColor(action.position, action.newColor, action.otherColor, defaultColorSum)
+                deselectColor(action.position, action.newColor, action.otherColor)
             is ColorAction.IncorrectInput ->
                 callbackForIncorrectInput(action.newColor.length <= EXPECTED_COLOR_HEX_LENGTH)
+            is ColorAction.Clear ->
+                handleClearAction()
         }
     }
 
@@ -69,15 +73,20 @@ class ColorViewModel(
     private fun deselectColor(
         position: Int,
         colorHex: String,
-        otherColorHex: String,
-        defaultColorSum: String
+        otherColorHex: String
     ) {
-        var colorSum = defaultColorSum
+        var colorSum = DEFAULT_COLOR_SUM
         if (otherColorHex.length == EXPECTED_COLOR_HEX_LENGTH) {
             colorSum = otherColorHex
         }
         updateColorState(position, colorHex, otherColorHex, colorSum)
         changeColorCallback(position, colorHex, colorSum)
+    }
+
+    private fun handleClearAction() {
+        updateColorState(0, "", "", "")
+        changeColorCallback(0, "", DEFAULT_COLOR_SUM)
+        changeColorCallback(1, "", DEFAULT_COLOR_SUM)
     }
 
     private fun callbackForIncorrectInput(charactersIncorrect: Boolean) {

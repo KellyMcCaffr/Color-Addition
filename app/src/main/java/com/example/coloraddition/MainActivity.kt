@@ -3,6 +3,8 @@ package com.example.coloraddition
 import android.content.Context
 import android.graphics.Color.parseColor
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -51,7 +53,7 @@ import com.example.coloraddition.ui.theme.ColorAdditionTheme
 
 class MainActivity : ComponentActivity() {
 
-    val sumViewTextSize = 20.sp
+    private val sumViewTextSize = 20.sp
 
     private val colorViewModel by lazy {
         ColorViewModel(
@@ -101,7 +103,7 @@ class MainActivity : ComponentActivity() {
             colorViewModel.setCallback(viewModelCallback)
             ColorAdditionTheme {
                 if (!isLandscapeMode) {
-                    setPortraitLayout(
+                    SetPortraitLayout(
                        containerWidth, sumWidth, containerPadding, sumString,
                        sumStringFormatted, colorSelectionHint, colorSelectionLabelsList,
                        colorHex1, colorHex2
@@ -118,7 +120,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun setPortraitLayout(
+    fun SetPortraitLayout(
         colorSelectionViewWidth: Dp,
         sumViewWidth: Dp,
         containerPadding: Dp,
@@ -154,7 +156,7 @@ class MainActivity : ComponentActivity() {
                 false,
                 callback = { position, colorText ->
                     colorViewModel.processIntent(ColorIntent.ChangeField(position, colorText,
-                        if (position == 0){ colorHex2 } else { colorHex1 }), DEFAULT_COLOR_SUM)
+                        if (position == 0){ colorHex2 } else { colorHex1 }))
                 }
             )
         }
@@ -190,8 +192,7 @@ class MainActivity : ComponentActivity() {
                 true,
                 callback = { position, colorText ->
                     colorViewModel.processIntent(ColorIntent.ChangeField(position,
-                        colorText, if (position == 0){ colorHex2 } else { colorHex1 }),
-                        DEFAULT_COLOR_SUM)
+                        colorText, if (position == 0){ colorHex2 } else { colorHex1 }))
                 }
             )
             SumView(
@@ -349,5 +350,22 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(context, getString(R.string.error_message_too_large),
                 Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun onClearOptionSelected() {
+        colorViewModel.processIntent(ColorIntent.Clear)
+    }
+
+    // Top menu
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_add_colors_page, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.addColorsClear) {
+            onClearOptionSelected()
+        }
+        return true
     }
 }

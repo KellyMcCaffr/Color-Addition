@@ -6,4 +6,5 @@
     <string name="hex_string_letter_prefix">ff</string>
     <string name="error_message_non_hex_input">Hex input must be a letter a–f or number 0–9</string>
     <string name="error_message_too_large">Hex must have 6 characters</string>
+    <string name="menu_add_colors_clear">Clear</string>
 </resources>
