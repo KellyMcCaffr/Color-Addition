@@ -63,6 +63,9 @@ class MainActivity : ComponentActivity() {
             val containerWidth = minDimen / 3
             val containerPadding = containerWidth / 10
             val isLandscapeMode = ViewUtils.getScreenIsLandscapeMode(this)
+            val colorSelectionHint = stringResource(R.string.color_selection_hint)
+            val colorSelectionLabelsList = listOf(getString(R.string.color_1_edit_text_label),
+                getString(R.string.color_2_edit_text_label))
             var colorHex1 by rememberSaveable { mutableStateOf("") }
             var colorHex2 by rememberSaveable { mutableStateOf("") }
             var sumString by rememberSaveable { mutableStateOf(DEFAULT_COLOR_SUM) }
@@ -71,51 +74,128 @@ class MainActivity : ComponentActivity() {
             } else {
                 sumString
             }
+            val viewModelCallback = {position: Int, colorText: String, colorSumString: String ->
+                if (position >= 0) {
+                    if (position == 0) {
+                        colorHex1 = colorText
+                    } else if (position == 1) {
+                        colorHex2 = colorText
+                    }
+                    sumString = colorSumString
+                } else if (position == -1){
+                    Toast.makeText(context, getString(R.string.error_message_non_hex_input),
+                        Toast.LENGTH_SHORT).show()
+                } else if (position == -2){
+                    Toast.makeText(context, getString(R.string.error_message_too_large),
+                        Toast.LENGTH_SHORT).show()
+                }
+            }  as (Int, String, String) -> Any
+            colorViewModel.setCallback(viewModelCallback)
             ColorAdditionTheme {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(1f)
-                        .padding(containerPadding),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    val viewModelCallback = {position: Int, colorText: String, colorSumString: String ->
-                        if (position >= 0) {
-                            if (position == 0) {
-                                colorHex1 = colorText
-                            } else if (position == 1) {
-                                colorHex2 = colorText
-                            }
-                            sumString = colorSumString
-                        } else if (position == -1){
-                            Toast.makeText(context, getString(R.string.error_message_non_hex_input),
-                                Toast.LENGTH_SHORT).show()
-                        } else if (position == -2){
-                            Toast.makeText(context, getString(R.string.error_message_too_large),
-                                Toast.LENGTH_SHORT).show()
-                        }
-                    }  as (Int, String, String) -> Any
-                    colorViewModel.setCallback(viewModelCallback)
-                    SumView(
-                        sumWidth,
-                        containerPadding,
-                        sumString,
-                        sumStringFormatted
+                if (!isLandscapeMode) {
+                    setPortraitLayout(
+                       containerWidth, sumWidth, containerPadding, sumString,
+                       sumStringFormatted, colorSelectionHint, colorSelectionLabelsList,
+                       colorHex1, colorHex2, colorViewModel
                     )
-                    ColorSelectionViews(
-                        containerWidth = containerWidth,
-                        containerPadding = containerPadding,
-                        colorHex1,
-                        colorHex2,
-                        isLandscapeMode,
-                        callback = { position, colorText ->
-                            colorViewModel.processIntent(ColorIntent.ChangeField(position,
-                                colorText), DEFAULT_COLOR_SUM)
-                        }
+                } else {
+                    setLandscapeLayout(
+                        containerWidth, sumWidth, containerPadding, sumString,
+                        sumStringFormatted, colorSelectionHint, colorSelectionLabelsList,
+                        colorHex1, colorHex2, colorViewModel
                     )
                 }
             }
+        }
+    }
+
+    @Composable
+    fun setPortraitLayout(
+        colorSelectionViewWidth: Dp,
+        sumViewWidth: Dp,
+        containerPadding: Dp,
+        sumString: String,
+        sumStringFormatted: String,
+        hint: String,
+        colorSelectionLabelsList: List<String>,
+        colorHex1: String,
+        colorHex2: String,
+        viewModel: ColorViewModel
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(1f)
+                .padding(containerPadding),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            SumView(
+                sumViewWidth,
+                containerPadding,
+                sumString,
+                sumStringFormatted,
+                false
+            )
+            ColorSelectionViews(
+                containerWidth = colorSelectionViewWidth,
+                containerPadding = containerPadding,
+                colorHex1,
+                colorHex2,
+                hint,
+                colorSelectionLabelsList,
+                false,
+                callback = { position, colorText ->
+                    viewModel.processIntent(ColorIntent.ChangeField(position,
+                        colorText), DEFAULT_COLOR_SUM)
+                },
+                viewModel
+            )
+        }
+    }
+
+    @Composable
+    fun setLandscapeLayout(
+        colorSelectionViewWidth: Dp,
+        sumViewWidth: Dp,
+        containerPadding: Dp,
+        sumString: String,
+        sumStringFormatted: String,
+        hint: String,
+        colorSelectionLabelsList: List<String>,
+        colorHex1: String,
+        colorHex2: String,
+        viewModel: ColorViewModel
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .padding(containerPadding),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.Top,
+        ) {
+            ColorSelectionViews(
+                containerWidth = colorSelectionViewWidth,
+                containerPadding = containerPadding,
+                colorHex1,
+                colorHex2,
+                hint,
+                colorSelectionLabelsList,
+                true,
+                callback = { position, colorText ->
+                    viewModel.processIntent(ColorIntent.ChangeField(position,
+                        colorText), DEFAULT_COLOR_SUM)
+                },
+                viewModel
+            )
+            SumView(
+                sumViewWidth,
+                containerPadding,
+                sumString,
+                sumStringFormatted,
+                true
+            )
         }
     }
 
@@ -124,14 +204,20 @@ class MainActivity : ComponentActivity() {
         containerWidth: Dp,
         containerPadding: Dp,
         sumString: String,
-        sumStringFormatted: String
+        sumStringFormatted: String,
+        isLandscape: Boolean
     ) {
-        Row(
-            modifier = Modifier
+        val modifier = if (isLandscape) {
+            Modifier.fillMaxHeight().fillMaxWidth()
+        } else {
+            Modifier
                 .fillMaxWidth()
-                .padding(containerPadding),
+                .padding(containerPadding)
+        }
+        Row(
+            modifier = modifier,
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = if (!isLandscape) {Arrangement.Center} else { Arrangement.End },
         ) {
             Surface(
                 modifier = Modifier
@@ -164,27 +250,58 @@ class MainActivity : ComponentActivity() {
         containerPadding: Dp,
         color1: String,
         color2: String,
-        isLandscapeMode: Boolean,
-        callback: (Int, String) -> Unit
+        hint: String,
+        labelsList: List<String>,
+        isLandscape: Boolean,
+        callback: (Int, String) -> Unit,
+        viewModel: ColorViewModel
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            val hint = stringResource(R.string.color_selection_hint)
-            val labelsList = listOf(getString(R.string.color_1_edit_text_label),
-                getString(R.string.color_2_edit_text_label))
-            for ((c, color) in listOf(color1, color2).withIndex()) {
-                val label = labelsList[c]
-                ColorSelectionEditText(c, label, colorOuter = color, hint = hint,
-                    containerWidth = containerWidth, containerPadding = containerPadding, onValueChange =
-                    {
-                        callback(c, it)
-                    })
+        if (!isLandscape) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                generateTextViews(
+                    containerWidth, containerPadding, hint, color1, color2,
+                    labelsList, callback, viewModel
+                )
             }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxHeight(),
+                verticalAlignment = Alignment.Top
+            ) {
+                generateTextViews(
+                    containerWidth, containerPadding, hint, color1, color2,
+                    labelsList, callback, viewModel
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun generateTextViews(
+        containerWidth: Dp,
+        containerPadding: Dp,
+        hint: String,
+        color1: String,
+        color2: String,
+        labelsList: List<String>,
+        callback: (Int, String) -> Unit,
+        viewModel: ColorViewModel
+    ) {
+        for ((c, color) in listOf(color1, color2).withIndex()) {
+            val label = labelsList[c]
+            ColorSelectionEditText(c, label, colorOuter = color, hint = hint,
+                containerWidth = containerWidth, containerPadding = containerPadding, onValueChange =
+                {
+                    callback(c, it)
+                },
+                viewModel)
         }
     }
 
@@ -197,7 +314,8 @@ class MainActivity : ComponentActivity() {
         hint: String,
         containerWidth: Dp,
         containerPadding: Dp,
-        onValueChange: (String) -> Unit
+        onValueChange: (String) -> Unit,
+        viewModel: ColorViewModel
     ) {
         val color = rememberSaveable{ mutableStateOf(colorOuter) }
         OutlinedTextField(
@@ -205,9 +323,9 @@ class MainActivity : ComponentActivity() {
             onValueChange = {
                onValueChange(it)
                 if (position == 0) {
-                    color.value = colorViewModel.getColor1()
+                    color.value = viewModel.getColor1()
                 } else {
-                    color.value = colorViewModel.getColor2()
+                    color.value = viewModel.getColor2()
                 }
             },
             placeholder = {
