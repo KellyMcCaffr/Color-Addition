@@ -1,5 +1,6 @@
 package com.example.coloraddition
 
+import android.content.Context
 import android.graphics.Color.parseColor
 import android.os.Bundle
 import android.widget.Toast
@@ -39,14 +40,25 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.coloraddition.Constants.COLOR_HEX_ALLOWED_CHARACTERS
+import com.example.coloraddition.Constants.CONTAINER_PADDING_WIDTH_FRACTIONAL
+import com.example.coloraddition.Constants.CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
 import com.example.coloraddition.Constants.DEFAULT_COLOR_SUM
+import com.example.coloraddition.Constants.ERROR_CODE_INVALID_INPUT
+import com.example.coloraddition.Constants.ERROR_CODE_TOO_LARGE
 import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
+import com.example.coloraddition.Constants.SUM_WIDTH_MIN_DIMEN_FRACTIONAL
 import com.example.coloraddition.ui.theme.ColorAdditionTheme
 
 class MainActivity : ComponentActivity() {
 
-    private val colorViewModel: ColorViewModel = ColorViewModel("", "",
-        DEFAULT_COLOR_SUM, COLOR_HEX_ALLOWED_CHARACTERS)
+    val sumViewTextSize = 20.sp
+
+    private val colorViewModel by lazy {
+        ColorViewModel(
+            "", "",
+            DEFAULT_COLOR_SUM, COLOR_HEX_ALLOWED_CHARACTERS
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,9 +71,9 @@ class MainActivity : ComponentActivity() {
             } else {
                 widthDp
             }
-            val sumWidth = minDimen / 2
-            val containerWidth = minDimen / 3
-            val containerPadding = containerWidth / 10
+            val sumWidth = minDimen / SUM_WIDTH_MIN_DIMEN_FRACTIONAL
+            val containerWidth = minDimen / CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
+            val containerPadding = containerWidth / CONTAINER_PADDING_WIDTH_FRACTIONAL
             val isLandscapeMode = ViewUtils.getScreenIsLandscapeMode(this)
             val colorSelectionHint = stringResource(R.string.color_selection_hint)
             val colorSelectionLabelsList = listOf(getString(R.string.color_1_edit_text_label),
@@ -82,12 +94,8 @@ class MainActivity : ComponentActivity() {
                         colorHex2 = colorText
                     }
                     sumString = colorSumString
-                } else if (position == -1){
-                    Toast.makeText(context, getString(R.string.error_message_non_hex_input),
-                        Toast.LENGTH_SHORT).show()
-                } else if (position == -2){
-                    Toast.makeText(context, getString(R.string.error_message_too_large),
-                        Toast.LENGTH_SHORT).show()
+                } else {
+                    handleError(position, context)
                 }
             }  as (Int, String, String) -> Any
             colorViewModel.setCallback(viewModelCallback)
@@ -96,13 +104,13 @@ class MainActivity : ComponentActivity() {
                     setPortraitLayout(
                        containerWidth, sumWidth, containerPadding, sumString,
                        sumStringFormatted, colorSelectionHint, colorSelectionLabelsList,
-                       colorHex1, colorHex2, colorViewModel
+                       colorHex1, colorHex2
                     )
                 } else {
-                    setLandscapeLayout(
+                    SetLandscapeLayout(
                         containerWidth, sumWidth, containerPadding, sumString,
                         sumStringFormatted, colorSelectionHint, colorSelectionLabelsList,
-                        colorHex1, colorHex2, colorViewModel
+                        colorHex1, colorHex2
                     )
                 }
             }
@@ -119,13 +127,12 @@ class MainActivity : ComponentActivity() {
         hint: String,
         colorSelectionLabelsList: List<String>,
         colorHex1: String,
-        colorHex2: String,
-        viewModel: ColorViewModel
+        colorHex2: String
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(1f)
+                .fillMaxHeight()
                 .padding(containerPadding),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -146,16 +153,15 @@ class MainActivity : ComponentActivity() {
                 colorSelectionLabelsList,
                 false,
                 callback = { position, colorText ->
-                    viewModel.processIntent(ColorIntent.ChangeField(position,
-                        colorText), DEFAULT_COLOR_SUM)
-                },
-                viewModel
+                    colorViewModel.processIntent(ColorIntent.ChangeField(position, colorText,
+                        if (position == 0){ colorHex2 } else { colorHex1 }), DEFAULT_COLOR_SUM)
+                }
             )
         }
     }
 
     @Composable
-    fun setLandscapeLayout(
+    fun SetLandscapeLayout(
         colorSelectionViewWidth: Dp,
         sumViewWidth: Dp,
         containerPadding: Dp,
@@ -164,8 +170,7 @@ class MainActivity : ComponentActivity() {
         hint: String,
         colorSelectionLabelsList: List<String>,
         colorHex1: String,
-        colorHex2: String,
-        viewModel: ColorViewModel
+        colorHex2: String
     ) {
         Row(
             modifier = Modifier
@@ -184,10 +189,10 @@ class MainActivity : ComponentActivity() {
                 colorSelectionLabelsList,
                 true,
                 callback = { position, colorText ->
-                    viewModel.processIntent(ColorIntent.ChangeField(position,
-                        colorText), DEFAULT_COLOR_SUM)
-                },
-                viewModel
+                    colorViewModel.processIntent(ColorIntent.ChangeField(position,
+                        colorText, if (position == 0){ colorHex2 } else { colorHex1 }),
+                        DEFAULT_COLOR_SUM)
+                }
             )
             SumView(
                 sumViewWidth,
@@ -217,7 +222,7 @@ class MainActivity : ComponentActivity() {
         Row(
             modifier = modifier,
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = if (!isLandscape) {Arrangement.Center} else { Arrangement.End },
+            horizontalArrangement = if (!isLandscape) { Arrangement.Center } else { Arrangement.End },
         ) {
             Surface(
                 modifier = Modifier
@@ -236,7 +241,7 @@ class MainActivity : ComponentActivity() {
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.ExtraBold,
                             textAlign = TextAlign.Center,
-                            fontSize = 20.sp
+                            fontSize = sumViewTextSize
                         )
                     )
                 }
@@ -253,8 +258,7 @@ class MainActivity : ComponentActivity() {
         hint: String,
         labelsList: List<String>,
         isLandscape: Boolean,
-        callback: (Int, String) -> Unit,
-        viewModel: ColorViewModel
+        callback: (Int, String) -> Unit
     ) {
         if (!isLandscape) {
             Row(
@@ -266,7 +270,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 generateTextViews(
                     containerWidth, containerPadding, hint, color1, color2,
-                    labelsList, callback, viewModel
+                    labelsList, callback
                 )
             }
         } else {
@@ -277,7 +281,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 generateTextViews(
                     containerWidth, containerPadding, hint, color1, color2,
-                    labelsList, callback, viewModel
+                    labelsList, callback
                 )
             }
         }
@@ -291,8 +295,7 @@ class MainActivity : ComponentActivity() {
         color1: String,
         color2: String,
         labelsList: List<String>,
-        callback: (Int, String) -> Unit,
-        viewModel: ColorViewModel
+        callback: (Int, String) -> Unit
     ) {
         for ((c, color) in listOf(color1, color2).withIndex()) {
             val label = labelsList[c]
@@ -300,8 +303,7 @@ class MainActivity : ComponentActivity() {
                 containerWidth = containerWidth, containerPadding = containerPadding, onValueChange =
                 {
                     callback(c, it)
-                },
-                viewModel)
+                })
         }
     }
 
@@ -314,18 +316,17 @@ class MainActivity : ComponentActivity() {
         hint: String,
         containerWidth: Dp,
         containerPadding: Dp,
-        onValueChange: (String) -> Unit,
-        viewModel: ColorViewModel
+        onValueChange: (String) -> Unit
     ) {
-        val color = rememberSaveable{ mutableStateOf(colorOuter) }
+        var color = colorOuter
         OutlinedTextField(
-            value = color.value,
+            value = color,
             onValueChange = {
                onValueChange(it)
-                if (position == 0) {
-                    color.value = viewModel.getColor1()
+                color = if (position == 0) {
+                    colorViewModel.getColor1()
                 } else {
-                    color.value = viewModel.getColor2()
+                    colorViewModel.getColor2()
                 }
             },
             placeholder = {
@@ -336,7 +337,17 @@ class MainActivity : ComponentActivity() {
                 .padding(containerPadding),
             textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
             maxLines = 1,
-            label = { Text(label) },
+            label = { Text(label) }
         )
+    }
+
+    private fun handleError(code: Int, context: Context) {
+        if (code == ERROR_CODE_INVALID_INPUT){
+            Toast.makeText(context, getString(R.string.error_message_non_hex_input),
+                Toast.LENGTH_SHORT).show()
+        } else if (code == ERROR_CODE_TOO_LARGE){
+            Toast.makeText(context, getString(R.string.error_message_too_large),
+                Toast.LENGTH_SHORT).show()
+        }
     }
 }
