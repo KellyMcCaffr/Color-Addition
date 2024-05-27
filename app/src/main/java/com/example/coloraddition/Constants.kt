@@ -1,7 +1,5 @@
 package com.example.coloraddition
 
-import androidx.compose.ui.unit.sp
-
 object Constants {
     const val EXPECTED_COLOR_HEX_LENGTH = 6
     const val SUM_WIDTH_MIN_DIMEN_FRACTIONAL = 2

@@ -91,9 +91,9 @@ class MainActivity : ComponentActivity() {
             val viewModelCallback = {position: Int, colorText: String, colorSumString: String ->
                 if (position >= 0) {
                     if (position == 0) {
-                        colorHex1 = colorText
+                        colorHex1 = colorText.lowercase()
                     } else if (position == 1) {
-                        colorHex2 = colorText
+                        colorHex2 = colorText.lowercase()
                     }
                     sumString = colorSumString
                 } else {
@@ -223,11 +223,12 @@ class MainActivity : ComponentActivity() {
         Row(
             modifier = modifier,
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = if (!isLandscape) { Arrangement.Center } else { Arrangement.End },
+            horizontalArrangement = if (!isLandscape) { Arrangement.Center } else { Arrangement.Start },
         ) {
             Surface(
                 modifier = Modifier
-                    .size(containerWidth),
+                    .size(containerWidth)
+                    .padding(containerPadding),
                 color = Color(parseColor("#$sumString")),
                 shape = CircleShape
             ) {
