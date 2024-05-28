@@ -1,6 +1,7 @@
 package com.example.coloraddition
 
 import android.graphics.Color
+import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
 
 object ViewModelUtils {
 
@@ -18,15 +19,23 @@ object ViewModelUtils {
         allowedCharacters: String
     ): Boolean {
         return colorHex.none { !allowedCharacters.contains(it) }
-            && colorHex.length <= Constants.EXPECTED_COLOR_HEX_LENGTH
+            && colorHex.length <= EXPECTED_COLOR_HEX_LENGTH
+    }
+
+    fun hasSum(
+        colorHex1: String,
+        colorHex2: String
+    ): Boolean {
+        return colorHex1.length == EXPECTED_COLOR_HEX_LENGTH
+            && colorHex2.length == EXPECTED_COLOR_HEX_LENGTH
     }
 
     fun canCalculateColorSum(
         colorHex1: String,
         colorHex2: String
     ): Boolean {
-        return colorHex1.length == Constants.EXPECTED_COLOR_HEX_LENGTH
-            && colorHex2.length == Constants.EXPECTED_COLOR_HEX_LENGTH
+        return colorHex1.length == EXPECTED_COLOR_HEX_LENGTH
+            && colorHex2.length == EXPECTED_COLOR_HEX_LENGTH
     }
 
     // This method was copied from StackOverflow and converted to Kotlin

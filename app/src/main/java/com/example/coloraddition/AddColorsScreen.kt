@@ -1,8 +1,10 @@
 package com.example.coloraddition
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color.parseColor
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
@@ -41,17 +43,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_INCOMPLETE
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_SUCCESS
 import com.example.coloraddition.Constants.COLOR_HEX_ALLOWED_CHARACTERS
 import com.example.coloraddition.Constants.CONTAINER_PADDING_WIDTH_FRACTIONAL
 import com.example.coloraddition.Constants.CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
 import com.example.coloraddition.Constants.DEFAULT_COLOR_SUM
 import com.example.coloraddition.Constants.ERROR_CODE_INVALID_INPUT
-import com.example.coloraddition.Constants.ERROR_CODE_TOO_LARGE
 import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
 import com.example.coloraddition.Constants.SUM_WIDTH_MIN_DIMEN_FRACTIONAL
 import com.example.coloraddition.ui.theme.ColorAdditionTheme
 
-class MainActivity : ComponentActivity() {
+class AddColorsScreen : ComponentActivity() {
 
     private val sumViewTextSize = 20.sp
 
@@ -100,7 +103,7 @@ class MainActivity : ComponentActivity() {
                     handleError(position, context)
                 }
             }  as (Int, String, String) -> Any
-            colorViewModel.setCallback(viewModelCallback)
+            colorViewModel.setAddColorsCallback(viewModelCallback)
             ColorAdditionTheme {
                 if (!isLandscapeMode) {
                     SetPortraitLayout(
@@ -270,7 +273,7 @@ class MainActivity : ComponentActivity() {
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.Center
             ) {
-                generateTextViews(
+                GenerateTextViews(
                     containerWidth, containerPadding, hint, color1, color2,
                     labelsList, callback
                 )
@@ -281,7 +284,7 @@ class MainActivity : ComponentActivity() {
                     .fillMaxHeight(),
                 verticalAlignment = Alignment.Top
             ) {
-                generateTextViews(
+                GenerateTextViews(
                     containerWidth, containerPadding, hint, color1, color2,
                     labelsList, callback
                 )
@@ -290,7 +293,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun generateTextViews(
+    fun GenerateTextViews(
         containerWidth: Dp,
         containerPadding: Dp,
         hint: String,
@@ -344,28 +347,46 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleError(code: Int, context: Context) {
+        Log.e("544554","Handle error with code: " + code)
         if (code == ERROR_CODE_INVALID_INPUT){
             Toast.makeText(context, getString(R.string.error_message_non_hex_input),
                 Toast.LENGTH_SHORT).show()
-        } else if (code == ERROR_CODE_TOO_LARGE){
-            Toast.makeText(context, getString(R.string.error_message_too_large),
+        } else if (code == ADD_RESULT_CODE_INCOMPLETE) {
+            Toast.makeText(context, getString(R.string.save_message_error_no_sum),
+                Toast.LENGTH_SHORT).show()
+        } else if (code == ADD_RESULT_CODE_SUCCESS) {
+            Toast.makeText(context, getString(R.string.save_message_success),
                 Toast.LENGTH_SHORT).show()
         }
+        /*else if (code == ERROR_CODE_TOO_LARGE){
+            Toast.makeText(context, getString(R.string.error_message_too_large),
+                Toast.LENGTH_SHORT).show()
+        }*/
+    }
+
+    private fun onSaveOptionSelected() {
+        colorViewModel.processIntent(ColorIntent.Save)
     }
 
     private fun onClearOptionSelected() {
         colorViewModel.processIntent(ColorIntent.Clear)
     }
 
-    // Top menu
+    private fun onSavedOptionSelected() {
+        val i = Intent(applicationContext, SavedColorsScreen::class.java)
+        startActivity(i)
+    }
+
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_add_colors_page, menu)
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.addColorsClear) {
-            onClearOptionSelected()
+        when (item.itemId) {
+            R.id.addColorsSave -> onSaveOptionSelected()
+            R.id.addColorsClear -> onClearOptionSelected()
+            R.id.addColorsSaved -> onSavedOptionSelected()
         }
         return true
     }

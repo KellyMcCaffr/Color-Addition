@@ -1,6 +1,10 @@
 package com.example.coloraddition
 
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_INCOMPLETE
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_SUCCESS
 import com.example.coloraddition.Constants.DEFAULT_COLOR_SUM
+import com.example.coloraddition.Constants.ERROR_CODE_INVALID_INPUT
+import com.example.coloraddition.Constants.ERROR_CODE_TOO_LARGE
 import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
 
 class ColorViewModel(
@@ -9,13 +13,13 @@ class ColorViewModel(
     sumString: String,
     private val allowedCharacters: String
 ) {
-    private lateinit var changeColorCallback: (Int, String, String) -> Any
+    private lateinit var callbackToAddColors: (Int, String, String) -> Any
     private var state: ColorState
     init {
         state = ColorState(colorHex1, colorHex2, sumString)
     }
-    fun setCallback(callback: (Int, String, String) -> Any) {
-        changeColorCallback = callback
+    fun setAddColorsCallback(callback: (Int, String, String) -> Any) {
+        callbackToAddColors = callback
     }
 
     fun getColor1(): String {
@@ -41,6 +45,8 @@ class ColorViewModel(
             }
             is ColorIntent.Clear ->
                 ColorAction.Clear
+            is ColorIntent.Save ->
+                ColorAction.Save(state.colorHex1, state.colorHex2, state.colorSum)
         }
     }
 
@@ -54,6 +60,8 @@ class ColorViewModel(
                 callbackForIncorrectInput(action.newColor.length <= EXPECTED_COLOR_HEX_LENGTH)
             is ColorAction.Clear ->
                 handleClearAction()
+            is ColorAction.Save ->
+                handleSaveAction()
         }
     }
 
@@ -67,7 +75,7 @@ class ColorViewModel(
             colorSum = ViewModelUtils.calculateColorSum(colorHex, otherColorHex)
         }
         updateColorState(position, colorHex, otherColorHex, colorSum)
-        changeColorCallback(position, colorHex, colorSum)
+        callbackToAddColors(position, colorHex, colorSum)
     }
 
     private fun deselectColor(
@@ -80,21 +88,29 @@ class ColorViewModel(
             colorSum = otherColorHex
         }
         updateColorState(position, colorHex, otherColorHex, colorSum)
-        changeColorCallback(position, colorHex, colorSum)
+        callbackToAddColors(position, colorHex, colorSum)
     }
 
     private fun handleClearAction() {
         updateColorState(0, "", "", "")
-        changeColorCallback(0, "", DEFAULT_COLOR_SUM)
-        changeColorCallback(1, "", DEFAULT_COLOR_SUM)
+        callbackToAddColors(0, "", DEFAULT_COLOR_SUM)
+        callbackToAddColors(1, "", DEFAULT_COLOR_SUM)
+    }
+
+    private fun handleSaveAction() {
+        if (ViewModelUtils.canCalculateColorSum(state.colorHex1, state.colorHex2)) {
+            callbackToAddColors(ADD_RESULT_CODE_SUCCESS, "", "")
+        } else {
+            callbackToAddColors(ADD_RESULT_CODE_INCOMPLETE, "", "")
+        }
     }
 
     private fun callbackForIncorrectInput(charactersIncorrect: Boolean) {
-        var errorCode = -2
+        var errorCode = ERROR_CODE_TOO_LARGE
         if (charactersIncorrect) {
-            errorCode = -1
+            errorCode = ERROR_CODE_INVALID_INPUT
         }
-        changeColorCallback(errorCode, "", "")
+        callbackToAddColors(errorCode, "", "")
     }
 
     private fun updateColorState(
