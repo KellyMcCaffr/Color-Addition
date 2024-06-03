@@ -1,10 +1,9 @@
-package com.example.coloraddition
+package com.example.coloraddition.AddColors
 
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color.parseColor
 import android.os.Bundle
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
@@ -43,8 +42,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.coloraddition.Constants.ADD_RESULT_CODE_INCOMPLETE
-import com.example.coloraddition.Constants.ADD_RESULT_CODE_SUCCESS
+import androidx.room.Room
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_INCOMPLETE
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_SUCCESS
 import com.example.coloraddition.Constants.COLOR_HEX_ALLOWED_CHARACTERS
 import com.example.coloraddition.Constants.CONTAINER_PADDING_WIDTH_FRACTIONAL
 import com.example.coloraddition.Constants.CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
@@ -52,16 +52,25 @@ import com.example.coloraddition.Constants.DEFAULT_COLOR_SUM
 import com.example.coloraddition.Constants.ERROR_CODE_INVALID_INPUT
 import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
 import com.example.coloraddition.Constants.SUM_WIDTH_MIN_DIMEN_FRACTIONAL
+import com.example.coloraddition.R
+import com.example.coloraddition.SavedColors.SavedColorsDatabase
+import com.example.coloraddition.SavedColors.SavedColorsScreen
+import com.example.coloraddition.ViewUtils
 import com.example.coloraddition.ui.theme.ColorAdditionTheme
 
 class AddColorsScreen : ComponentActivity() {
 
     private val sumViewTextSize = 20.sp
 
-    private val colorViewModel by lazy {
-        ColorViewModel(
+    private val addColorsViewModel by lazy {
+        val db = Room.databaseBuilder(
+            applicationContext,
+            SavedColorsDatabase::class.java, "SavedColorsDatabase"
+        ).build()
+        AddColorsViewModel(
             "", "",
-            DEFAULT_COLOR_SUM, COLOR_HEX_ALLOWED_CHARACTERS
+            DEFAULT_COLOR_SUM, COLOR_HEX_ALLOWED_CHARACTERS,
+            db
         )
     }
 
@@ -99,11 +108,13 @@ class AddColorsScreen : ComponentActivity() {
                         colorHex2 = colorText.lowercase()
                     }
                     sumString = colorSumString
+                } else if (position == ADD_RESULT_CODE_SAVE_SUCCESS){
+                    handleSave(context)
                 } else {
                     handleError(position, context)
                 }
             }  as (Int, String, String) -> Any
-            colorViewModel.setAddColorsCallback(viewModelCallback)
+            addColorsViewModel.setAddColorsCallback(viewModelCallback)
             ColorAdditionTheme {
                 if (!isLandscapeMode) {
                     SetPortraitLayout(
@@ -158,7 +169,8 @@ class AddColorsScreen : ComponentActivity() {
                 colorSelectionLabelsList,
                 false,
                 callback = { position, colorText ->
-                    colorViewModel.processIntent(ColorIntent.ChangeField(position, colorText,
+                    addColorsViewModel.processIntent(
+                        AddColorsIntent.ChangeField(position, colorText,
                         if (position == 0){ colorHex2 } else { colorHex1 }))
                 }
             )
@@ -194,7 +206,8 @@ class AddColorsScreen : ComponentActivity() {
                 colorSelectionLabelsList,
                 true,
                 callback = { position, colorText ->
-                    colorViewModel.processIntent(ColorIntent.ChangeField(position,
+                    addColorsViewModel.processIntent(
+                        AddColorsIntent.ChangeField(position,
                         colorText, if (position == 0){ colorHex2 } else { colorHex1 }))
                 }
             )
@@ -329,9 +342,9 @@ class AddColorsScreen : ComponentActivity() {
             onValueChange = {
                onValueChange(it)
                 color = if (position == 0) {
-                    colorViewModel.getColor1()
+                    addColorsViewModel.getColor1()
                 } else {
-                    colorViewModel.getColor2()
+                    addColorsViewModel.getColor2()
                 }
             },
             placeholder = {
@@ -346,30 +359,38 @@ class AddColorsScreen : ComponentActivity() {
         )
     }
 
-    private fun handleError(code: Int, context: Context) {
-        Log.e("544554","Handle error with code: " + code)
-        if (code == ERROR_CODE_INVALID_INPUT){
-            Toast.makeText(context, getString(R.string.error_message_non_hex_input),
-                Toast.LENGTH_SHORT).show()
-        } else if (code == ADD_RESULT_CODE_INCOMPLETE) {
-            Toast.makeText(context, getString(R.string.save_message_error_no_sum),
-                Toast.LENGTH_SHORT).show()
-        } else if (code == ADD_RESULT_CODE_SUCCESS) {
-            Toast.makeText(context, getString(R.string.save_message_success),
-                Toast.LENGTH_SHORT).show()
+    private fun handleSave(context: Context) {
+        // Save query was executed on a background thread
+        runOnUiThread {
+            run {
+                Toast.makeText(
+                    context, getString(R.string.save_message_success),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
-        /*else if (code == ERROR_CODE_TOO_LARGE){
-            Toast.makeText(context, getString(R.string.error_message_too_large),
-                Toast.LENGTH_SHORT).show()
-        }*/
+    }
+
+    private fun handleError(code: Int, context: Context) {
+        when (code) {
+            ERROR_CODE_INVALID_INPUT -> Toast.makeText(context, getString(
+                R.string.error_message_non_hex_input
+            ), Toast.LENGTH_SHORT).show()
+            ADD_RESULT_CODE_SAVE_INCOMPLETE -> Toast.makeText(context, getString(
+                R.string.save_message_error_no_sum
+            ), Toast.LENGTH_SHORT).show()
+            ADD_RESULT_CODE_SAVE_SUCCESS -> Toast.makeText(context, getString(
+                R.string.save_message_success
+            ), Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun onSaveOptionSelected() {
-        colorViewModel.processIntent(ColorIntent.Save)
+        addColorsViewModel.processIntent(AddColorsIntent.Save)
     }
 
     private fun onClearOptionSelected() {
-        colorViewModel.processIntent(ColorIntent.Clear)
+        addColorsViewModel.processIntent(AddColorsIntent.Clear)
     }
 
     private fun onSavedOptionSelected() {

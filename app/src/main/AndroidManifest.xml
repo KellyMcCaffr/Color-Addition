@@ -13,10 +13,10 @@
         android:theme="@style/Theme.ColorAddition"
         tools:targetApi="31">
         <activity
-            android:name=".SavedColorsScreen"
+            android:name=".SavedColors.SavedColorsScreen"
             android:exported="false" />
         <activity
-            android:name=".AddColorsScreen"
+            android:name=".AddColors.AddColorsScreen"
             android:exported="true"
             android:theme="@style/Theme.ColorAddition">
             <intent-filter>

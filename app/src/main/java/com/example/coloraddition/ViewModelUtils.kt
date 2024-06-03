@@ -2,6 +2,9 @@ package com.example.coloraddition
 
 import android.graphics.Color
 import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
+import java.util.Locale
+import java.util.UUID
+
 
 object ViewModelUtils {
 
@@ -22,7 +25,7 @@ object ViewModelUtils {
             && colorHex.length <= EXPECTED_COLOR_HEX_LENGTH
     }
 
-    fun hasSum(
+    fun canCalculateColorSum(
         colorHex1: String,
         colorHex2: String
     ): Boolean {
@@ -30,12 +33,10 @@ object ViewModelUtils {
             && colorHex2.length == EXPECTED_COLOR_HEX_LENGTH
     }
 
-    fun canCalculateColorSum(
-        colorHex1: String,
-        colorHex2: String
-    ): Boolean {
-        return colorHex1.length == EXPECTED_COLOR_HEX_LENGTH
-            && colorHex2.length == EXPECTED_COLOR_HEX_LENGTH
+    @Throws(Exception::class)
+    fun generateUniqueID(): String {
+        return UUID.randomUUID().toString().replace("-".toRegex(), "")
+            .uppercase(Locale.getDefault())
     }
 
     // This method was copied from StackOverflow and converted to Kotlin

@@ -1,22 +1,29 @@
-package com.example.coloraddition
+package com.example.coloraddition.AddColors
 
-import com.example.coloraddition.Constants.ADD_RESULT_CODE_INCOMPLETE
-import com.example.coloraddition.Constants.ADD_RESULT_CODE_SUCCESS
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_INCOMPLETE
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_SUCCESS
 import com.example.coloraddition.Constants.DEFAULT_COLOR_SUM
 import com.example.coloraddition.Constants.ERROR_CODE_INVALID_INPUT
 import com.example.coloraddition.Constants.ERROR_CODE_TOO_LARGE
 import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
+import com.example.coloraddition.SavedColors.SavedColor
+import com.example.coloraddition.SavedColors.SavedColorsDatabase
+import com.example.coloraddition.ViewModelUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-class ColorViewModel(
+class AddColorsViewModel(
     colorHex1: String,
     colorHex2: String,
     sumString: String,
-    private val allowedCharacters: String
+    private val allowedCharacters: String,
+    private val db: SavedColorsDatabase
 ) {
     private lateinit var callbackToAddColors: (Int, String, String) -> Any
-    private var state: ColorState
+    private var state: AddColorsState
     init {
-        state = ColorState(colorHex1, colorHex2, sumString)
+        state = AddColorsState(colorHex1, colorHex2, sumString)
     }
     fun setAddColorsCallback(callback: (Int, String, String) -> Any) {
         callbackToAddColors = callback
@@ -30,37 +37,40 @@ class ColorViewModel(
         return state.colorHex2
     }
 
-    fun processIntent(intent: ColorIntent) {
+    fun processIntent(intent: AddColorsIntent) {
         processAction(intentToAction(intent))
     }
 
-    private fun intentToAction(intent: ColorIntent): ColorAction {
+    private fun intentToAction(intent: AddColorsIntent): AddColorsAction {
         return when (intent) {
-            is ColorIntent.ChangeField -> if (!ViewModelUtils.isValidInput(intent.newColor, allowedCharacters)) {
-                ColorAction.IncorrectInput(intent.newColor)
+            is AddColorsIntent.ChangeField -> if (!ViewModelUtils.isValidInput(
+                    intent.newColor, allowedCharacters
+                )
+            ) {
+                AddColorsAction.IncorrectInput(intent.newColor)
             } else if (intent.newColor.length == EXPECTED_COLOR_HEX_LENGTH) {
-                ColorAction.FinishEnter(intent.position, intent.newColor, intent.otherColor)
+                AddColorsAction.FinishEnter(intent.position, intent.newColor, intent.otherColor)
             } else {
-                ColorAction.PartialFill(intent.position, intent.newColor, intent.otherColor)
+                AddColorsAction.PartialFill(intent.position, intent.newColor, intent.otherColor)
             }
-            is ColorIntent.Clear ->
-                ColorAction.Clear
-            is ColorIntent.Save ->
-                ColorAction.Save(state.colorHex1, state.colorHex2, state.colorSum)
+            is AddColorsIntent.Clear ->
+                AddColorsAction.Clear
+            is AddColorsIntent.Save ->
+                AddColorsAction.Save(state.colorHex1, state.colorHex2, state.colorSum)
         }
     }
 
-    private fun processAction(action: ColorAction) {
+    private fun processAction(action: AddColorsAction) {
         when (action) {
-            is ColorAction.FinishEnter ->
+            is AddColorsAction.FinishEnter ->
                 selectColor(action.position, action.newColor, action.otherColor)
-            is ColorAction.PartialFill ->
+            is AddColorsAction.PartialFill ->
                 deselectColor(action.position, action.newColor, action.otherColor)
-            is ColorAction.IncorrectInput ->
+            is AddColorsAction.IncorrectInput ->
                 callbackForIncorrectInput(action.newColor.length <= EXPECTED_COLOR_HEX_LENGTH)
-            is ColorAction.Clear ->
+            is AddColorsAction.Clear ->
                 handleClearAction()
-            is ColorAction.Save ->
+            is AddColorsAction.Save ->
                 handleSaveAction()
         }
     }
@@ -99,9 +109,15 @@ class ColorViewModel(
 
     private fun handleSaveAction() {
         if (ViewModelUtils.canCalculateColorSum(state.colorHex1, state.colorHex2)) {
-            callbackToAddColors(ADD_RESULT_CODE_SUCCESS, "", "")
+            CoroutineScope(Dispatchers.IO).launch {
+                val id = ViewModelUtils.generateUniqueID()
+                db.SavedColorDao().insertAll(
+                    SavedColor(id, state.colorHex1, state.colorHex2, state.colorSum)
+                )
+                callbackToAddColors(ADD_RESULT_CODE_SAVE_SUCCESS, "", "")
+            }
         } else {
-            callbackToAddColors(ADD_RESULT_CODE_INCOMPLETE, "", "")
+            callbackToAddColors(ADD_RESULT_CODE_SAVE_INCOMPLETE, "", "")
         }
     }
 
@@ -128,6 +144,6 @@ class ColorViewModel(
             hex2 = colorHex.lowercase()
             hex1 = otherColorHex
         }
-        state = ColorState(hex1, hex2, newColorSum.lowercase())
+        state = AddColorsState(hex1, hex2, newColorSum.lowercase())
     }
 }
