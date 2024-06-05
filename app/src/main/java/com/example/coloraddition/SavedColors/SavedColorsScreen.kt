@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -22,6 +23,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -75,7 +77,7 @@ class SavedColorsScreen : ComponentActivity() {
                             showedMessageForCurrentLaunch = true
                         }
                         items(savedColorsList) {
-                            SavedColorCell(savedColor = it, size = cellSize)
+                            SavedColorCell(it, cellSize)
                         }
                     }
                 }
@@ -88,14 +90,24 @@ class SavedColorsScreen : ComponentActivity() {
         savedColor: SavedColor,
         size: Dp
     ) {
+        val context = this
         Surface(
             modifier = Modifier
                 .size(size)
                 .padding(10.dp)
                 .fillMaxSize(1f)
-                .clickable { ViewUtils.openAddColorsScreenWithNewColor(this, savedColor) },
+                .pointerInput(Unit){
+                    detectTapGestures (
+                        onTap = { ViewUtils.openAddColorsScreenWithNewColor(context, savedColor) },
+                        onLongPress = {
+                            Toast.makeText(context, ViewUtils.getFormattedSumString(
+                                savedColor.sum, context), Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+            ,
             color = Color(android.graphics.Color.parseColor("#${savedColor.sum}")),
-        ) { }
+        ) {}
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

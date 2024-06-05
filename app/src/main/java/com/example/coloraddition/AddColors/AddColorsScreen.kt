@@ -52,12 +52,10 @@ import com.example.coloraddition.Constants.COLOR_HEX_ALLOWED_CHARACTERS
 import com.example.coloraddition.Constants.CONTAINER_PADDING_WIDTH_FRACTIONAL
 import com.example.coloraddition.Constants.DEFAULT_COLOR_SUM
 import com.example.coloraddition.Constants.ERROR_CODE_INVALID_INPUT
-import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
 import com.example.coloraddition.Constants.SUM_WIDTH_MIN_DIMEN_FRACTIONAL
 import com.example.coloraddition.R
 import com.example.coloraddition.SavedColors.SavedColor
 import com.example.coloraddition.SavedColorsDatabase
-import com.example.coloraddition.ViewModelUtils
 import com.example.coloraddition.ViewUtils
 import com.example.coloraddition.ui.theme.ColorAdditionTheme
 import kotlin.math.abs
@@ -104,11 +102,7 @@ class AddColorsScreen : ComponentActivity() {
                 colorHex2 = rememberSaveable { mutableStateOf(addColorsViewModel.getColor2()) }.value
                 sumString = rememberSaveable { mutableStateOf(addColorsViewModel.getColorSum()) }.value
             }
-            val sumStringFormatted = if (sumString.length > EXPECTED_COLOR_HEX_LENGTH) {
-                sumString.replaceFirst(getString(R.string.hex_string_letter_prefix),"")
-            } else {
-                sumString
-            }
+            val sumStringFormatted = ViewUtils.getFormattedSumString(sumString, this)
             val viewModelCallback = {position: Int, colorText: String, colorSumString: String ->
                 if (position >= 0) {
                     if (position == 0) {

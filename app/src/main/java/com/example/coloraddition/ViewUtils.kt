@@ -39,4 +39,15 @@ object ViewUtils {
         i.putExtra(context.getString(R.string.extra_color_to_load), savedColor)
         context.startActivity(i)
     }
+
+    fun getFormattedSumString(
+        sumString: String,
+        context: Context
+    ): String {
+        return if (sumString.length > Constants.EXPECTED_COLOR_HEX_LENGTH) {
+            sumString.replaceFirst(context.getString(R.string.hex_string_letter_prefix),"")
+        } else {
+            sumString
+        }
+    }
 }

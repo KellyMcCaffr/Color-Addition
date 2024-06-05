@@ -6,7 +6,6 @@ import com.example.coloraddition.SavedColors.SavedColor
 import java.util.Locale
 import java.util.UUID
 
-
 object ViewModelUtils {
 
     fun calculateColorSum(
