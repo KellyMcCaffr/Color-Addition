@@ -42,8 +42,16 @@ class AddColorsViewModel(
         return state.colorHex2
     }
 
+    fun getColorSum(): String {
+        return state.colorSum
+    }
+
     fun processIntent(intent: AddColorsIntent) {
         processAction(intentToAction(intent))
+    }
+
+    fun restoreSavedColor(hex1: String, hex2: String, sum: String) {
+        updateColorState(0, hex1, hex2, sum)
     }
 
     private fun intentToAction(intent: AddColorsIntent): AddColorsAction {

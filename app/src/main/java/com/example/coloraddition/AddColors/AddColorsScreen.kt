@@ -41,7 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
 import com.example.coloraddition.Constants.ADD_CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
 import com.example.coloraddition.Constants.ADD_RESULT_CODE_DELETE_INCOMPLETE
@@ -58,6 +57,7 @@ import com.example.coloraddition.Constants.SUM_WIDTH_MIN_DIMEN_FRACTIONAL
 import com.example.coloraddition.R
 import com.example.coloraddition.SavedColors.SavedColor
 import com.example.coloraddition.SavedColorsDatabase
+import com.example.coloraddition.ViewModelUtils
 import com.example.coloraddition.ViewUtils
 import com.example.coloraddition.ui.theme.ColorAdditionTheme
 import kotlin.math.abs
@@ -82,7 +82,7 @@ class AddColorsScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val context = this
-        val possibleColorToLoad = intent.extras?.getSerializable(
+        var possibleColorToLoad = intent.extras?.getSerializable(
             getString(R.string.extra_color_to_load)) as SavedColor?
         setContent {
             val minDimen = ViewUtils.getMinScreenDimensionSize(LocalConfiguration.current)
@@ -92,13 +92,17 @@ class AddColorsScreen : ComponentActivity() {
             val isLandscapeMode = ViewUtils.getScreenIsLandscapeMode(this)
             val colorSelectionHint = stringResource(R.string.color_selection_hint)
             val colorSelectionLabelsList = listOf(getString(R.string.color_1_edit_text_label), getString(R.string.color_2_edit_text_label))
-            var colorHex1 by rememberSaveable { mutableStateOf("") }
-            var colorHex2 by rememberSaveable { mutableStateOf("") }
-            var sumString by rememberSaveable { mutableStateOf(DEFAULT_COLOR_SUM) }
+            var colorHex1 by rememberSaveable { mutableStateOf(addColorsViewModel.getColor1()) }
+            var colorHex2 by rememberSaveable { mutableStateOf(addColorsViewModel.getColor2()) }
+            var sumString by rememberSaveable { mutableStateOf(addColorsViewModel.getColorSum()) }
             if (possibleColorToLoad != null) {
-                colorHex1 = possibleColorToLoad.hex1
-                colorHex2 = possibleColorToLoad.hex2
-                sumString = possibleColorToLoad.sum
+                val colorToLoad = possibleColorToLoad as SavedColor
+                addColorsViewModel.restoreSavedColor(colorToLoad.hex1,
+                    colorToLoad.hex2, colorToLoad.sum)
+                possibleColorToLoad = null
+                colorHex1 = rememberSaveable { mutableStateOf(addColorsViewModel.getColor1()) }.value
+                colorHex2 = rememberSaveable { mutableStateOf(addColorsViewModel.getColor2()) }.value
+                sumString = rememberSaveable { mutableStateOf(addColorsViewModel.getColorSum()) }.value
             }
             val sumStringFormatted = if (sumString.length > EXPECTED_COLOR_HEX_LENGTH) {
                 sumString.replaceFirst(getString(R.string.hex_string_letter_prefix),"")
