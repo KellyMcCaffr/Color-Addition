@@ -21,4 +21,10 @@ sealed class AddColorsAction {
         val hex2: String,
         val colorSum: String
     ): AddColorsAction()
+
+    data class DeleteFromSaved(
+        val hex1: String,
+        val hex2: String,
+        val colorSum: String
+    ): AddColorsAction()
 }

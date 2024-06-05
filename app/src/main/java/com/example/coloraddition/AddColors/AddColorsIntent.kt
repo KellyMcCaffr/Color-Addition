@@ -9,4 +9,6 @@ sealed class AddColorsIntent {
     object Clear: AddColorsIntent()
 
     object Save: AddColorsIntent()
+
+    object DeleteFromSaved: AddColorsIntent()
 }

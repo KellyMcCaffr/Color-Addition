@@ -1,11 +1,11 @@
 package com.example.coloraddition.AddColors
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.Color.parseColor
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -41,21 +41,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
+import com.example.coloraddition.Constants.ADD_CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_DELETE_INCOMPLETE
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_DELETE_SUCCESS
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_DUPLICATE
 import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_INCOMPLETE
 import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_SUCCESS
 import com.example.coloraddition.Constants.COLOR_HEX_ALLOWED_CHARACTERS
 import com.example.coloraddition.Constants.CONTAINER_PADDING_WIDTH_FRACTIONAL
-import com.example.coloraddition.Constants.ADD_CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
 import com.example.coloraddition.Constants.DEFAULT_COLOR_SUM
 import com.example.coloraddition.Constants.ERROR_CODE_INVALID_INPUT
 import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
 import com.example.coloraddition.Constants.SUM_WIDTH_MIN_DIMEN_FRACTIONAL
 import com.example.coloraddition.R
-import com.example.coloraddition.SavedColors.SavedColorsDatabase
-import com.example.coloraddition.SavedColors.SavedColorsScreen
+import com.example.coloraddition.SavedColors.SavedColor
+import com.example.coloraddition.SavedColorsDatabase
 import com.example.coloraddition.ViewUtils
 import com.example.coloraddition.ui.theme.ColorAdditionTheme
+import kotlin.math.abs
+
 
 class AddColorsScreen : ComponentActivity() {
 
@@ -76,6 +82,8 @@ class AddColorsScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val context = this
+        val possibleColorToLoad = intent.extras?.getSerializable(
+            getString(R.string.extra_color_to_load)) as SavedColor?
         setContent {
             val minDimen = ViewUtils.getMinScreenDimensionSize(LocalConfiguration.current)
             val sumWidth = minDimen / SUM_WIDTH_MIN_DIMEN_FRACTIONAL
@@ -87,6 +95,11 @@ class AddColorsScreen : ComponentActivity() {
             var colorHex1 by rememberSaveable { mutableStateOf("") }
             var colorHex2 by rememberSaveable { mutableStateOf("") }
             var sumString by rememberSaveable { mutableStateOf(DEFAULT_COLOR_SUM) }
+            if (possibleColorToLoad != null) {
+                colorHex1 = possibleColorToLoad.hex1
+                colorHex2 = possibleColorToLoad.hex2
+                sumString = possibleColorToLoad.sum
+            }
             val sumStringFormatted = if (sumString.length > EXPECTED_COLOR_HEX_LENGTH) {
                 sumString.replaceFirst(getString(R.string.hex_string_letter_prefix),"")
             } else {
@@ -102,6 +115,8 @@ class AddColorsScreen : ComponentActivity() {
                     sumString = colorSumString
                 } else if (position == ADD_RESULT_CODE_SAVE_SUCCESS){
                     handleSave(context)
+                } else if (position == ADD_RESULT_CODE_DELETE_SUCCESS){
+                    handleDelete(context)
                 } else {
                     handleError(position, context)
                 }
@@ -222,7 +237,9 @@ class AddColorsScreen : ComponentActivity() {
         isLandscape: Boolean
     ) {
         val modifier = if (isLandscape) {
-            Modifier.fillMaxHeight().fillMaxWidth()
+            Modifier
+                .fillMaxHeight()
+                .fillMaxWidth()
         } else {
             Modifier
                 .fillMaxWidth()
@@ -353,27 +370,32 @@ class AddColorsScreen : ComponentActivity() {
 
     private fun handleSave(context: Context) {
         // Save query was executed on a background thread
-        runOnUiThread {
-            run {
-                Toast.makeText(
-                    context, getString(R.string.save_message_success),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
+        Toast.makeText(
+            context, getString(R.string.save_message_success),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun handleDelete(context: Context) {
+        Toast.makeText(
+            context, getString(R.string.delete_message_success),
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun handleError(code: Int, context: Context) {
         when (code) {
             ERROR_CODE_INVALID_INPUT -> Toast.makeText(context, getString(
                 R.string.error_message_non_hex_input
-            ), Toast.LENGTH_SHORT).show()
+            ),
+                Toast.LENGTH_SHORT).show()
             ADD_RESULT_CODE_SAVE_INCOMPLETE -> Toast.makeText(context, getString(
                 R.string.save_message_error_no_sum
             ), Toast.LENGTH_SHORT).show()
-            ADD_RESULT_CODE_SAVE_SUCCESS -> Toast.makeText(context, getString(
-                R.string.save_message_success
-            ), Toast.LENGTH_SHORT).show()
+            ADD_RESULT_CODE_SAVE_DUPLICATE -> Toast.makeText(context, getString(
+                R.string.save_message_error_duplicate), Toast.LENGTH_SHORT).show()
+            ADD_RESULT_CODE_DELETE_INCOMPLETE -> Toast.makeText(context, getString(
+                R.string.delete_message_error_incomplete), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -385,9 +407,12 @@ class AddColorsScreen : ComponentActivity() {
         addColorsViewModel.processIntent(AddColorsIntent.Clear)
     }
 
+    private fun onRemoveFromSavedOptionSelected() {
+        addColorsViewModel.processIntent(AddColorsIntent.DeleteFromSaved)
+    }
+
     private fun onSavedOptionSelected() {
-        val i = Intent(applicationContext, SavedColorsScreen::class.java)
-        startActivity(i)
+        ViewUtils.openSavedColorsScreen(this)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -400,7 +425,28 @@ class AddColorsScreen : ComponentActivity() {
             R.id.addColorsSave -> onSaveOptionSelected()
             R.id.addColorsClear -> onClearOptionSelected()
             R.id.addColorsSaved -> onSavedOptionSelected()
+            R.id.addColorsRemoveFromSaved -> onRemoveFromSavedOptionSelected()
         }
         return true
+    }
+
+    // DETECT LEFT-RIGHT SWIPE
+    // This code was copied from StackOverflow and converted to Kotlin
+    // https://stackoverflow.com/questions/6645537/how-to-detect-the-swipe-left-or-right-in-android
+    private var x1 = 0f
+    var x2 = 0f
+    val MIN_DISTANCE: Int = 150
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> x1 = event.x
+            MotionEvent.ACTION_UP -> {
+                x2 = event.x
+                val deltaX: Float = x2 - x1
+                if (abs(deltaX.toDouble()) > MIN_DISTANCE) {
+                    ViewUtils.openSavedColorsScreen(this)
+                }
+            }
+        }
+        return super.onTouchEvent(event)
     }
 }

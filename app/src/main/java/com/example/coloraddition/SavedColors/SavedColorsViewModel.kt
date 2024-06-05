@@ -1,10 +1,13 @@
 package com.example.coloraddition.SavedColors
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.coloraddition.SavedColorsDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class SavedColorsViewModel(private val db: SavedColorsDatabase) {
+class SavedColorsViewModel(private val db: SavedColorsDatabase): ViewModel() {
     private lateinit var callbackToSavedColors: (List<SavedColor>) -> Any
     fun setSavedColorsCallback(callback: (List<SavedColor>) -> Any) {
         callbackToSavedColors = callback
@@ -17,6 +20,7 @@ class SavedColorsViewModel(private val db: SavedColorsDatabase) {
     private fun intentToAction(intent: SavedColorsIntent): SavedColorsAction {
         return when (intent) {
             is SavedColorsIntent.LoadAll -> SavedColorsAction.LoadAll
+            is SavedColorsIntent.DeleteAll -> SavedColorsAction.DeleteAll
         }
     }
 
@@ -24,13 +28,27 @@ class SavedColorsViewModel(private val db: SavedColorsDatabase) {
         when (action) {
             is SavedColorsAction.LoadAll ->
                 handleLoadSavedColorsAction()
+            is SavedColorsAction.DeleteAll ->
+                handleDeleteSavedColorsAction()
         }
     }
 
     private fun handleLoadSavedColorsAction() {
         CoroutineScope(Dispatchers.IO).launch {
             val savedColors = db.SavedColorDao().getAll()
-            callbackToSavedColors(savedColors)
+            viewModelScope.launch {
+                callbackToSavedColors(savedColors)
+            }
+        }
+    }
+
+    private fun handleDeleteSavedColorsAction() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val dao = db.SavedColorDao()
+            dao.deleteAll()
+            viewModelScope.launch {
+                callbackToSavedColors(listOf())
+            }
         }
     }
 }

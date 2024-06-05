@@ -3,10 +3,12 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_height="wrap_content"
     android:layout_width="wrap_content">
+    <item android:id="@+id/addColorsSaved"
+        android:title="@string/menu_add_colors_saved"/>
     <item android:id="@+id/addColorsSave"
         android:title="@string/menu_add_colors_save"/>
     <item android:id="@+id/addColorsClear"
         android:title="@string/menu_add_colors_clear"/>
-    <item android:id="@+id/addColorsSaved"
-        android:title="@string/menu_add_colors_saved"/>
+    <item android:id="@+id/addColorsRemoveFromSaved"
+        android:title="@string/menu_add_colors_remove_from_saved"/>
 </menu>

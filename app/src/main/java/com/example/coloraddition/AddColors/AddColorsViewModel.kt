@@ -1,5 +1,10 @@
 package com.example.coloraddition.AddColors
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_DELETE_INCOMPLETE
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_DELETE_SUCCESS
+import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_DUPLICATE
 import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_INCOMPLETE
 import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_SUCCESS
 import com.example.coloraddition.Constants.DEFAULT_COLOR_SUM
@@ -7,7 +12,7 @@ import com.example.coloraddition.Constants.ERROR_CODE_INVALID_INPUT
 import com.example.coloraddition.Constants.ERROR_CODE_TOO_LARGE
 import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
 import com.example.coloraddition.SavedColors.SavedColor
-import com.example.coloraddition.SavedColors.SavedColorsDatabase
+import com.example.coloraddition.SavedColorsDatabase
 import com.example.coloraddition.ViewModelUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +24,7 @@ class AddColorsViewModel(
     sumString: String,
     private val allowedCharacters: String,
     private val db: SavedColorsDatabase
-) {
+): ViewModel() {
     private lateinit var callbackToAddColors: (Int, String, String) -> Any
     private var state: AddColorsState
     init {
@@ -44,8 +49,7 @@ class AddColorsViewModel(
     private fun intentToAction(intent: AddColorsIntent): AddColorsAction {
         return when (intent) {
             is AddColorsIntent.ChangeField -> if (!ViewModelUtils.isValidInput(
-                    intent.newColor, allowedCharacters
-                )
+                intent.newColor, allowedCharacters)
             ) {
                 AddColorsAction.IncorrectInput(intent.newColor)
             } else if (intent.newColor.length == EXPECTED_COLOR_HEX_LENGTH) {
@@ -57,6 +61,8 @@ class AddColorsViewModel(
                 AddColorsAction.Clear
             is AddColorsIntent.Save ->
                 AddColorsAction.Save(state.colorHex1, state.colorHex2, state.colorSum)
+            is AddColorsIntent.DeleteFromSaved ->
+                AddColorsAction.DeleteFromSaved(state.colorHex1, state.colorHex2, state.colorSum)
         }
     }
 
@@ -72,6 +78,8 @@ class AddColorsViewModel(
                 handleClearAction()
             is AddColorsAction.Save ->
                 handleSaveAction()
+            is AddColorsAction.DeleteFromSaved ->
+                handleDeleteFromSavedAction()
         }
     }
 
@@ -81,7 +89,7 @@ class AddColorsViewModel(
         otherColorHex: String
     ) {
         var colorSum = colorHex
-        if (ViewModelUtils.canCalculateColorSum(colorHex, otherColorHex)) {
+        if (ViewModelUtils.isFullInput(colorHex, otherColorHex)) {
             colorSum = ViewModelUtils.calculateColorSum(colorHex, otherColorHex)
         }
         updateColorState(position, colorHex, otherColorHex, colorSum)
@@ -108,16 +116,41 @@ class AddColorsViewModel(
     }
 
     private fun handleSaveAction() {
-        if (ViewModelUtils.canCalculateColorSum(state.colorHex1, state.colorHex2)) {
+        if (ViewModelUtils.isFullInput(state.colorHex1, state.colorHex2)) {
             CoroutineScope(Dispatchers.IO).launch {
+                val currentSavedColors = db.SavedColorDao().getAll()
                 val id = ViewModelUtils.generateUniqueID()
-                db.SavedColorDao().insertAll(
-                    SavedColor(id, state.colorHex1, state.colorHex2, state.colorSum)
-                )
-                callbackToAddColors(ADD_RESULT_CODE_SAVE_SUCCESS, "", "")
+                val newSavedColor = SavedColor(id, state.colorHex1, state.colorHex2, state.colorSum)
+                if (!ViewModelUtils.isColorAlreadySaved(newSavedColor, currentSavedColors)) {
+                    db.SavedColorDao().insertAll(newSavedColor)
+                    viewModelScope.launch {
+                        callbackToAddColors(ADD_RESULT_CODE_SAVE_SUCCESS, "", "")
+                    }
+                } else {
+                    viewModelScope.launch {
+                        callbackToAddColors(ADD_RESULT_CODE_SAVE_DUPLICATE, "", "")
+                    }
+                }
             }
         } else {
             callbackToAddColors(ADD_RESULT_CODE_SAVE_INCOMPLETE, "", "")
+        }
+    }
+
+    private fun handleDeleteFromSavedAction() {
+        CoroutineScope(Dispatchers.IO).launch {
+            if (ViewModelUtils.isFullInput(state.colorHex1, state.colorHex2)) {
+                val currentSavedColor = SavedColor(ViewModelUtils.generateUniqueID(),
+                    state.colorHex1, state.colorHex2, state.colorSum)
+                db.SavedColorDao().deleteColor(currentSavedColor)
+                viewModelScope.launch {
+                    callbackToAddColors(ADD_RESULT_CODE_DELETE_SUCCESS, "", "")
+                }
+            } else {
+                viewModelScope.launch {
+                    callbackToAddColors(ADD_RESULT_CODE_DELETE_INCOMPLETE, "", "")
+                }
+            }
         }
     }
 

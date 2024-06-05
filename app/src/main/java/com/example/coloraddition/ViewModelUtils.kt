@@ -2,6 +2,7 @@ package com.example.coloraddition
 
 import android.graphics.Color
 import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
+import com.example.coloraddition.SavedColors.SavedColor
 import java.util.Locale
 import java.util.UUID
 
@@ -25,7 +26,7 @@ object ViewModelUtils {
             && colorHex.length <= EXPECTED_COLOR_HEX_LENGTH
     }
 
-    fun canCalculateColorSum(
+    fun isFullInput(
         colorHex1: String,
         colorHex2: String
     ): Boolean {
@@ -56,5 +57,19 @@ object ViewModelUtils {
         val b =
             ((color1 and 0xff).toFloat() * amount + (color2 and 0xff).toFloat() * inverseAmount).toInt() and 0xff
         return a shl ALPHA_CHANNEL.toInt() or (r shl RED_CHANNEL.toInt()) or (g shl GREEN_CHANNEL.toInt()) or (b shl BLUE_CHANNEL.toInt())
+    }
+
+    fun isColorAlreadySaved(
+        color: SavedColor,
+        savedColorsList: List<SavedColor>
+    ): Boolean {
+        for (savedColor in savedColorsList) {
+            val isEqual = (savedColor.hex1 == color.hex1 && savedColor.hex2 == color.hex2)  ||
+                (savedColor.hex2 == color.hex1 && savedColor.hex1 == color.hex2)
+            if (isEqual) {
+                return true
+            }
+        }
+        return false
     }
 }

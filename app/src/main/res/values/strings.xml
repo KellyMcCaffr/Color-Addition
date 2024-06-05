@@ -6,10 +6,16 @@
     <string name="hex_string_letter_prefix">ff</string>
     <string name="error_message_non_hex_input">Hex input must be a letter a–f or number 0–9</string>
     <string name="save_message_success">Save complete</string>
+    <string name="delete_message_success">Color deleted from saved</string>
+    <string name="delete_message_error_incomplete">Delete requires two full hex codes</string>
+    <string name="save_message_color_intro">Tap to load</string>
     <string name="save_message_error_no_sum">Save requires two full hex codes</string>
+    <string name="save_message_error_duplicate">Color already saved</string>
     <string name="menu_add_colors_save">Save</string>
     <string name="menu_add_colors_clear">Clear</string>
     <string name="menu_add_colors_saved">Saved Colors</string>
+    <string name="menu_add_colors_remove_from_saved">Remove from Saved</string>
     <string name="menu_saved_colors_add">Add Colors</string>
     <string name="menu_saved_colors_clear_all">Clear All</string>
+    <string name="extra_color_to_load">Color to load into Add Colors Screen</string>
 </resources>
