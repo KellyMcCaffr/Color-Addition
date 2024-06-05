@@ -11,4 +11,5 @@
     <string name="menu_add_colors_clear">Clear</string>
     <string name="menu_add_colors_saved">Saved Colors</string>
     <string name="menu_saved_colors_add">Add Colors</string>
+    <string name="menu_saved_colors_clear_all">Clear All</string>
 </resources>

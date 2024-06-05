@@ -1,9 +1,5 @@
 package com.example.coloraddition.SavedColors
 
-import com.example.coloraddition.SavedColors.SavedColor
-import com.example.coloraddition.SavedColors.SavedColorsAction
-import com.example.coloraddition.SavedColors.SavedColorsDatabase
-import com.example.coloraddition.SavedColors.SavedColorsIntent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

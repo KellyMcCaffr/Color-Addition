@@ -40,14 +40,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.room.Room
 import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_INCOMPLETE
 import com.example.coloraddition.Constants.ADD_RESULT_CODE_SAVE_SUCCESS
 import com.example.coloraddition.Constants.COLOR_HEX_ALLOWED_CHARACTERS
 import com.example.coloraddition.Constants.CONTAINER_PADDING_WIDTH_FRACTIONAL
-import com.example.coloraddition.Constants.CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
+import com.example.coloraddition.Constants.ADD_CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
 import com.example.coloraddition.Constants.DEFAULT_COLOR_SUM
 import com.example.coloraddition.Constants.ERROR_CODE_INVALID_INPUT
 import com.example.coloraddition.Constants.EXPECTED_COLOR_HEX_LENGTH
@@ -78,20 +77,13 @@ class AddColorsScreen : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val context = this
         setContent {
-            val widthDp = LocalConfiguration.current.screenWidthDp.dp
-            val heightDp = LocalConfiguration.current.screenHeightDp.dp
-            val minDimen = if (widthDp >= heightDp) {
-                heightDp
-            } else {
-                widthDp
-            }
+            val minDimen = ViewUtils.getMinScreenDimensionSize(LocalConfiguration.current)
             val sumWidth = minDimen / SUM_WIDTH_MIN_DIMEN_FRACTIONAL
-            val containerWidth = minDimen / CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
+            val containerWidth = minDimen / ADD_CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
             val containerPadding = containerWidth / CONTAINER_PADDING_WIDTH_FRACTIONAL
             val isLandscapeMode = ViewUtils.getScreenIsLandscapeMode(this)
             val colorSelectionHint = stringResource(R.string.color_selection_hint)
-            val colorSelectionLabelsList = listOf(getString(R.string.color_1_edit_text_label),
-                getString(R.string.color_2_edit_text_label))
+            val colorSelectionLabelsList = listOf(getString(R.string.color_1_edit_text_label), getString(R.string.color_2_edit_text_label))
             var colorHex1 by rememberSaveable { mutableStateOf("") }
             var colorHex2 by rememberSaveable { mutableStateOf("") }
             var sumString by rememberSaveable { mutableStateOf(DEFAULT_COLOR_SUM) }
