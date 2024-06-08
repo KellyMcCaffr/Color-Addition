@@ -38,9 +38,6 @@ import kotlin.math.abs
 
 class SavedColorsScreen : ComponentActivity() {
 
-    private var isCombineMode = false
-    private var selectedCombineColorSum = ""
-
     companion object {
         // Display intro toast message once per launch if a color is saved
         private var showedMessageForCurrentLaunch = false
@@ -66,12 +63,29 @@ class SavedColorsScreen : ComponentActivity() {
                         listOf()
                     )
                 }
-                val viewModelCallback = { it: List<SavedColor> ->
-                    savedColorsList = it
-                } as (List<SavedColor>) -> Any
-                savedColorsViewModel.setSavedColorsCallback(viewModelCallback)
-                savedColorsViewModel.processIntent(SavedColorsIntent.LoadAll)
                 val context = this
+                val viewModelCombineCallback = {selectedColor: SavedColor, possHex1: String, possHex2: String,
+                    possCombinedColorSum: String ->
+                    if (possCombinedColorSum.isEmpty()) {
+                        selectedCombineColorId = selectedColor.id
+                    } else {
+                        val formattedHex1 = ViewUtils.getFormattedSumString(possHex1, context)
+                        val formattedHex2 = ViewUtils.getFormattedSumString(possHex2, context)
+                        ViewUtils.openAddColorsScreenWithNewColor(context,
+                            SavedColor(ViewModelUtils.generateUniqueID(),
+                                formattedHex1, formattedHex2, possCombinedColorSum))
+                    }
+                }
+                val viewModelStandardCallback = { it: List<SavedColor>, isOpen: Boolean ->
+                    if (isOpen) {
+                        ViewUtils.openAddColorsScreenWithNewColor(context, it.get(0))
+                    } else {
+                        savedColorsList = it
+                    }
+                } as (List<SavedColor>, Boolean) -> Any
+                savedColorsViewModel.setSavedColorsCallbacks(viewModelStandardCallback,
+                    viewModelCombineCallback)
+                savedColorsViewModel.processIntent(SavedColorsIntent.LoadAll)
                 LazyVerticalGrid(GridCells.Adaptive(minSize = 128.dp)) {
                     if (savedColorsList.isNotEmpty()) {
                         if (!showedMessageForCurrentLaunch) {
@@ -82,21 +96,7 @@ class SavedColorsScreen : ComponentActivity() {
                             showedMessageForCurrentLaunch = true
                         }
                         items(savedColorsList) {
-                            val combineSelectCallback = {color: SavedColor ->
-                                if (selectedCombineColorSum.isEmpty()) {
-                                    selectedCombineColorId = color.id
-                                    selectedCombineColorSum = color.sum
-                                } else {
-                                    val newColorSum = ViewModelUtils.calculateColorSum(
-                                        color.sum, selectedCombineColorSum)
-                                    val newHex1 = ViewUtils.getFormattedSumString(color.sum, context)
-                                    val newHex2 = ViewUtils.getFormattedSumString(selectedCombineColorSum, context)
-                                    ViewUtils.openAddColorsScreenWithNewColor(context,
-                                        SavedColor(ViewModelUtils.generateUniqueID(),
-                                        newHex1, newHex2, newColorSum))
-                                }
-                            }
-                            SavedColorCell(it, cellSize, selectedCombineColorId, combineSelectCallback)
+                            SavedColorCell(it, cellSize, selectedCombineColorId)
                         }
                     }
                 }
@@ -108,8 +108,7 @@ class SavedColorsScreen : ComponentActivity() {
     fun SavedColorCell(
         savedColor: SavedColor,
         size: Dp,
-        selectedCombineColorId: String,
-        combineSelectCallback: (SavedColor) -> Any
+        selectedCombineColorId: String
     ) {
         val context = this
         Surface(
@@ -121,11 +120,7 @@ class SavedColorsScreen : ComponentActivity() {
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = {
-                            if (isCombineMode) {
-                                combineSelectCallback(savedColor)
-                            } else {
-                                ViewUtils.openAddColorsScreenWithNewColor(context, savedColor)
-                            }
+                            savedColorsViewModel.processIntent(SavedColorsIntent.TapColor(savedColor))
                         },
                         onLongPress = {
                             Toast
@@ -150,18 +145,10 @@ class SavedColorsScreen : ComponentActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.savedColorsAdd -> onBackPressedDispatcher.onBackPressed()
-            R.id.savedColorsCombine -> toggleCombineMode()
+            R.id.savedColorsCombine -> savedColorsViewModel.toggleCombineMode(this)
             R.id.savedColorsClearAll -> savedColorsViewModel.processIntent(SavedColorsIntent.DeleteAll)
         }
         return true
-    }
-
-    private fun toggleCombineMode() {
-        isCombineMode = !isCombineMode
-        if (isCombineMode) {
-            Toast.makeText(this, getString(R.string.save_message_combine_intro),
-                Toast.LENGTH_SHORT).show()
-        }
     }
 
     // DETECT LEFT-RIGHT SWIPE

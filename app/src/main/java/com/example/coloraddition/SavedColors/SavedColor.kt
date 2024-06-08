@@ -2,7 +2,6 @@ package com.example.coloraddition.SavedColors
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.Ignore
 import androidx.room.PrimaryKey
 
 @Entity

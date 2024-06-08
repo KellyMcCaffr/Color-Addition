@@ -7,8 +7,6 @@ sealed class AddColorsIntent {
         val otherColor: String
     ): AddColorsIntent()
     object Clear: AddColorsIntent()
-
     object Save: AddColorsIntent()
-
     object DeleteFromSaved: AddColorsIntent()
 }
