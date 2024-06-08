@@ -33,6 +33,15 @@ object ViewModelUtils {
             && colorHex2.length == EXPECTED_COLOR_HEX_LENGTH
     }
 
+    fun isOneHexComplete(
+        colorHex1: String,
+        colorHex2: String
+    ): Boolean {
+        return colorHex1.length == EXPECTED_COLOR_HEX_LENGTH
+            || colorHex2.length == EXPECTED_COLOR_HEX_LENGTH
+    }
+
+
     @Throws(Exception::class)
     fun generateUniqueID(): String {
         return UUID.randomUUID().toString().replace("-".toRegex(), "")

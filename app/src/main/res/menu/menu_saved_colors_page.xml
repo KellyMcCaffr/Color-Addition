@@ -5,6 +5,8 @@
     android:layout_width="wrap_content">
     <item android:id="@+id/savedColorsAdd"
         android:title="@string/menu_saved_colors_add"/>
+    <item android:id="@+id/savedColorsCombine"
+        android:title="@string/menu_saved_colors_combine"/>
     <item android:id="@+id/savedColorsClearAll"
         android:title="@string/menu_saved_colors_clear_all"/>
 </menu>

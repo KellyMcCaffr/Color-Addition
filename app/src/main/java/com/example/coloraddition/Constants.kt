@@ -15,4 +15,5 @@ object Constants {
     const val ADD_RESULT_CODE_DELETE_INCOMPLETE = -7
     const val DEFAULT_COLOR_SUM = "ffffff"
     const val COLOR_HEX_ALLOWED_CHARACTERS = "0123456789ABCDEFabcdef"
+    const val ALPHA_SELECTED = 0.6f
 }

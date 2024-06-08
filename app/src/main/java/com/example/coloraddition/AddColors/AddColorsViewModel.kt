@@ -124,11 +124,21 @@ class AddColorsViewModel(
     }
 
     private fun handleSaveAction() {
-        if (ViewModelUtils.isFullInput(state.colorHex1, state.colorHex2)) {
+        if (ViewModelUtils.isOneHexComplete(state.colorHex1, state.colorHex2)) {
             CoroutineScope(Dispatchers.IO).launch {
                 val currentSavedColors = db.SavedColorDao().getAll()
                 val id = ViewModelUtils.generateUniqueID()
-                val newSavedColor = SavedColor(id, state.colorHex1, state.colorHex2, state.colorSum)
+                val saveHex1 = if (state.colorHex1.length == EXPECTED_COLOR_HEX_LENGTH) {
+                    state.colorHex1
+                } else {
+                    ""
+                }
+                val saveHex2 = if (state.colorHex2.length == EXPECTED_COLOR_HEX_LENGTH) {
+                    state.colorHex2
+                } else {
+                    ""
+                }
+                val newSavedColor = SavedColor(id, saveHex1, saveHex2, state.colorSum)
                 if (!ViewModelUtils.isColorAlreadySaved(newSavedColor, currentSavedColors)) {
                     db.SavedColorDao().insertAll(newSavedColor)
                     viewModelScope.launch {

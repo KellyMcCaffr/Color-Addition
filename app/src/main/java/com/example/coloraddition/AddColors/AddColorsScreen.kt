@@ -388,7 +388,7 @@ class AddColorsScreen : ComponentActivity() {
             ),
                 Toast.LENGTH_SHORT).show()
             ADD_RESULT_CODE_SAVE_INCOMPLETE -> Toast.makeText(context, getString(
-                R.string.save_message_error_no_sum
+                R.string.save_message_no_full_hex
             ), Toast.LENGTH_SHORT).show()
             ADD_RESULT_CODE_SAVE_DUPLICATE -> Toast.makeText(context, getString(
                 R.string.save_message_error_duplicate), Toast.LENGTH_SHORT).show()

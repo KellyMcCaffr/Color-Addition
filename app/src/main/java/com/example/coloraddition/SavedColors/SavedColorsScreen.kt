@@ -7,7 +7,6 @@ import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -22,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -31,11 +31,15 @@ import androidx.room.Room
 import com.example.coloraddition.Constants.SAVE_CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
 import com.example.coloraddition.R
 import com.example.coloraddition.SavedColorsDatabase
+import com.example.coloraddition.ViewModelUtils
 import com.example.coloraddition.ViewUtils
 import com.example.coloraddition.ui.theme.ColorAdditionTheme
 import kotlin.math.abs
 
 class SavedColorsScreen : ComponentActivity() {
+
+    private var isCombineMode = false
+    private var selectedCombineColorSum = ""
 
     companion object {
         // Display intro toast message once per launch if a color is saved
@@ -54,6 +58,7 @@ class SavedColorsScreen : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ColorAdditionTheme {
+                var selectedCombineColorId by rememberSaveable { mutableStateOf("") }
                 val cellSize = ViewUtils.getMinScreenDimensionSize(LocalConfiguration.current) /
                     SAVE_CONTAINER_WIDTH_MIN_DIMEN_FRACTIONAL
                 var savedColorsList: List<SavedColor> by rememberSaveable {
@@ -77,7 +82,21 @@ class SavedColorsScreen : ComponentActivity() {
                             showedMessageForCurrentLaunch = true
                         }
                         items(savedColorsList) {
-                            SavedColorCell(it, cellSize)
+                            val combineSelectCallback = {color: SavedColor ->
+                                if (selectedCombineColorSum.isEmpty()) {
+                                    selectedCombineColorId = color.id
+                                    selectedCombineColorSum = color.sum
+                                } else {
+                                    val newColorSum = ViewModelUtils.calculateColorSum(
+                                        color.sum, selectedCombineColorSum)
+                                    val newHex1 = ViewUtils.getFormattedSumString(color.sum, context)
+                                    val newHex2 = ViewUtils.getFormattedSumString(selectedCombineColorSum, context)
+                                    ViewUtils.openAddColorsScreenWithNewColor(context,
+                                        SavedColor(ViewModelUtils.generateUniqueID(),
+                                        newHex1, newHex2, newColorSum))
+                                }
+                            }
+                            SavedColorCell(it, cellSize, selectedCombineColorId, combineSelectCallback)
                         }
                     }
                 }
@@ -88,20 +107,33 @@ class SavedColorsScreen : ComponentActivity() {
     @Composable
     fun SavedColorCell(
         savedColor: SavedColor,
-        size: Dp
+        size: Dp,
+        selectedCombineColorId: String,
+        combineSelectCallback: (SavedColor) -> Any
     ) {
         val context = this
         Surface(
             modifier = Modifier
                 .size(size)
                 .padding(10.dp)
+                .alpha(if(savedColor.id == selectedCombineColorId) { 0.6f } else { 1f })
                 .fillMaxSize(1f)
-                .pointerInput(Unit){
-                    detectTapGestures (
-                        onTap = { ViewUtils.openAddColorsScreenWithNewColor(context, savedColor) },
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            if (isCombineMode) {
+                                combineSelectCallback(savedColor)
+                            } else {
+                                ViewUtils.openAddColorsScreenWithNewColor(context, savedColor)
+                            }
+                        },
                         onLongPress = {
-                            Toast.makeText(context, ViewUtils.getFormattedSumString(
-                                savedColor.sum, context), Toast.LENGTH_SHORT).show()
+                            Toast
+                                .makeText(
+                                    context, ViewUtils.getFormattedSumString(
+                                        savedColor.sum, context
+                                    ), Toast.LENGTH_SHORT
+                                ).show()
                         }
                     )
                 }
@@ -116,12 +148,20 @@ class SavedColorsScreen : ComponentActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.savedColorsAdd)  {
-            onBackPressedDispatcher.onBackPressed()
-        } else if (item.itemId == R.id.savedColorsClearAll) {
-            savedColorsViewModel.processIntent(SavedColorsIntent.DeleteAll)
+        when (item.itemId) {
+            R.id.savedColorsAdd -> onBackPressedDispatcher.onBackPressed()
+            R.id.savedColorsCombine -> toggleCombineMode()
+            R.id.savedColorsClearAll -> savedColorsViewModel.processIntent(SavedColorsIntent.DeleteAll)
         }
         return true
+    }
+
+    private fun toggleCombineMode() {
+        isCombineMode = !isCombineMode
+        if (isCombineMode) {
+            Toast.makeText(this, getString(R.string.save_message_combine_intro),
+                Toast.LENGTH_SHORT).show()
+        }
     }
 
     // DETECT LEFT-RIGHT SWIPE

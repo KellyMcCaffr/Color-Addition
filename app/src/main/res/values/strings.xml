@@ -9,13 +9,15 @@
     <string name="delete_message_success">Color deleted from saved</string>
     <string name="delete_message_error_incomplete">Delete requires two full hex codes</string>
     <string name="save_message_color_intro">Tap to load</string>
-    <string name="save_message_error_no_sum">Save requires two full hex codes</string>
+    <string name="save_message_combine_intro">Tap two colors to combine them</string>
+    <string name="save_message_no_full_hex">Save requires one or more full hex codes</string>
     <string name="save_message_error_duplicate">Color already saved</string>
     <string name="menu_add_colors_save">Save</string>
     <string name="menu_add_colors_clear">Clear</string>
     <string name="menu_add_colors_saved">Saved Colors</string>
     <string name="menu_add_colors_remove_from_saved">Remove from Saved</string>
-    <string name="menu_saved_colors_add">Add Colors</string>
+    <string name="menu_saved_colors_add">Add New</string>
+    <string name="menu_saved_colors_combine">Add Current</string>
     <string name="menu_saved_colors_clear_all">Clear All</string>
     <string name="extra_color_to_load">Color to load into Add Colors Screen</string>
 </resources>
